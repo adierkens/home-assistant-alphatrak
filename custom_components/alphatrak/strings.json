@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AlphaTRAK Setup",
+        "description": "Enter your AlphaTRAK API credentials and pet information.",
+        "data": {
+          "token": "API Token",
+          "pet_id": "Pet ID"
+        },
+        "data_description": {
+          "token": "Your AlphaTRAK API bearer token",
+          "pet_id": "The ID of your pet in the AlphaTRAK system"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "glucose_level": {
+        "name": "Glucose level"
+      }
+    }
+  }
+}

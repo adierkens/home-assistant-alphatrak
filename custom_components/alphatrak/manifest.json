@@ -1,0 +1,13 @@
+{
+  "domain": "alphatrak",
+  "name": "AlphaTrak3",
+  "codeowners": ["@adierkens"],
+  "config_flow": true,
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "quality_scale": "bronze",
+  "requirements": [],
+  "documentation": "https://github.com/adierkens/home-assistant-alphatrak",
+  "issue_tracker": "https://github.com/adierkens/home-assistant-alphatrak/issues",
+  "version": "0.1.0"
+}
