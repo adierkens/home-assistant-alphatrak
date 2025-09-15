@@ -190,3 +190,80 @@ class AlphaTrakApi:
             reading[RESPONSE_MAX_RANGE] = max_range
 
         return blood_glucose_readings
+
+    def _extract_entry_datetime(self, entry: dict[str, Any]) -> str:
+        """Return an ISO datetime string from an activity entry."""
+        for key in entry:
+            if key.endswith("EntryDateTime"):
+                val = entry.get(key)
+                if isinstance(val, str):
+                    return val
+        # Some entries may use slightly different casing or names; try common
+        # alternatives
+        for candidate in ("EntryDateTime", "EntryDate"):
+            for key in entry:
+                val = entry.get(key)
+                if candidate in key and isinstance(val, str):
+                    return val
+        return ""
+
+    async def get_recent_activities(
+        self, days: int = 7
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Return the raw lists of activities for the last N days."""
+        end_date = datetime.now(UTC)
+        start_date = end_date - timedelta(days=days)
+
+        activity_data = await self.get_pet_activity(start_date, end_date)
+        if not activity_data:
+            return {}
+
+        pet_activity = activity_data.get(RESPONSE_PET_ACTIVITY, {})
+
+        # Add range information to each glucose reading if present
+        min_range = activity_data.get(RESPONSE_MIN_RANGE)
+        max_range = activity_data.get(RESPONSE_MAX_RANGE)
+        blood_glucose_readings = pet_activity.get(RESPONSE_BLOOD_GLUCOSE, [])
+        for reading in blood_glucose_readings:
+            reading[RESPONSE_MIN_RANGE] = min_range
+            reading[RESPONSE_MAX_RANGE] = max_range
+
+        return pet_activity
+
+    async def get_latest_activities(
+        self,
+    ) -> dict[str, dict[str, Any] | None]:
+        """Return the most recent entry for each activity type (or None if absent)."""
+        # Look back a reasonable window to ensure we catch recent events
+        end_date = datetime.now(UTC)
+        start_date = end_date - timedelta(days=7)
+
+        activity_data = await self.get_pet_activity(start_date, end_date)
+        if not activity_data:
+            return {}
+
+        pet_activity = activity_data.get(RESPONSE_PET_ACTIVITY, {})
+
+        latest: dict[str, dict[str, Any] | None] = {}
+
+        for activity_type, entries in pet_activity.items():
+            if not entries:
+                latest[activity_type] = None
+                continue
+
+            sorted_entries = sorted(
+                entries,
+                key=lambda x: self._extract_entry_datetime(x) or "",
+                reverse=True,
+            )
+            # Attach range info for blood glucose
+            if activity_type == RESPONSE_BLOOD_GLUCOSE:
+                min_range = activity_data.get(RESPONSE_MIN_RANGE)
+                max_range = activity_data.get(RESPONSE_MAX_RANGE)
+                for r in sorted_entries:
+                    r[RESPONSE_MIN_RANGE] = min_range
+                    r[RESPONSE_MAX_RANGE] = max_range
+
+            latest[activity_type] = sorted_entries[0]
+
+        return latest

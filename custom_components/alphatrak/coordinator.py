@@ -51,6 +51,10 @@ class AlphaTrakCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Get readings from the last 7 days for trend analysis
             readings = await self.api.get_glucose_readings(days=7)
+
+            # Get recent activity lists and latest events across activity types
+            recent_activities = await self.api.get_recent_activities(days=7)
+            latest_activities = await self.api.get_latest_activities()
         except AlphaTrakAuthError as err:
             msg = "Authentication failed"
             raise ConfigEntryAuthFailed(msg) from err
@@ -65,4 +69,6 @@ class AlphaTrakCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "latest_reading": latest_reading,
                 "recent_readings": readings,
                 "pet_id": self.api.pet_id,
+                "recent_activities": recent_activities,
+                "latest_activities": latest_activities,
             }
