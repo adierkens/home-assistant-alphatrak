@@ -4,9 +4,9 @@
   "codeowners": ["@adierkens"],
   "config_flow": true,
   "documentation": "https://github.com/adierkens/home-assistant-alphatrak",
-  "issue_tracker": "https://github.com/adierkens/home-assistant-alphatrak/issues",
   "integration_type": "service",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/adierkens/home-assistant-alphatrak/issues",
   "quality_scale": "bronze",
   "requirements": ["pycryptodome>=3.19.0"],
   "version": "0.1.0"
