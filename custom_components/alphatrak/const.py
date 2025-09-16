@@ -5,10 +5,13 @@ DOMAIN = "alphatrak"
 # Configuration constants
 CONF_TOKEN_KEY = "token"  # noqa: S105 - configuration key name, not a hardcoded secret
 CONF_PET_ID = "pet_id"
+CONF_USERNAME = "username"
+CONF_PASSWORD = "password"  # noqa: S105 - configuration key name, not a hardcoded secret
 
 # API constants
 API_BASE_URL = "https://alphatrakapi.zoetis.com/api"
 API_ENDPOINT = "GetPetActivityByDateWiseList"
+API_LOGIN_ENDPOINT = "GetUserLogin"
 API_TIMEOUT = 30
 
 # Default values

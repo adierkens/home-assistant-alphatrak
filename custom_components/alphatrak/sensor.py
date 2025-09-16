@@ -56,6 +56,122 @@ SENSORS: tuple[SensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfBloodGlucoseConcentration.MILLIGRAMS_PER_DECILITER,
         icon="mdi:diabetes",
     ),
+    # Feedings
+    SensorEntityDescription(
+        key="feedings_last_7_days",
+        name="Feedings (7d)",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:food-variant",
+    ),
+    SensorEntityDescription(
+        key="last_feeding_time",
+        name="Last feeding",
+        icon="mdi:clock-end",
+    ),
+    # Insulin
+    SensorEntityDescription(
+        key="insulin_count_last_7_days",
+        name="Insulin injections (7d)",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:syringe",
+    ),
+    SensorEntityDescription(
+        key="last_insulin_dose",
+        name="Last insulin dose",
+        icon="mdi:syringe",
+    ),
+    SensorEntityDescription(
+        key="last_insulin_time",
+        name="Last insulin time",
+        icon="mdi:clock-end",
+    ),
+    # Exercise
+    SensorEntityDescription(
+        key="exercise_count_last_7_days",
+        name="Exercise (7d)",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:run",
+    ),
+    SensorEntityDescription(
+        key="last_exercise_time",
+        name="Last exercise",
+        icon="mdi:clock-end",
+    ),
+    # Urination
+    SensorEntityDescription(
+        key="urination_count_last_7_days",
+        name="Urination (7d)",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:toilet",
+    ),
+    SensorEntityDescription(
+        key="last_urination_time",
+        name="Last urination",
+        icon="mdi:clock-end",
+    ),
+    # Vomiting
+    SensorEntityDescription(
+        key="vomiting_count_last_7_days",
+        name="Vomiting (7d)",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:emoticon-sick",
+    ),
+    SensorEntityDescription(
+        key="last_vomiting_time",
+        name="Last vomiting",
+        icon="mdi:clock-end",
+    ),
+    # Water intake
+    SensorEntityDescription(
+        key="water_intake_count_last_7_days",
+        name="Water intake (7d)",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:cup-water",
+    ),
+    SensorEntityDescription(
+        key="last_water_intake_time",
+        name="Last water intake",
+        icon="mdi:clock-end",
+    ),
+    # Weight
+    SensorEntityDescription(
+        key="last_weight_value",
+        name="Last weight",
+        icon="mdi:scale-bathroom",
+    ),
+    SensorEntityDescription(
+        key="last_weight_time",
+        name="Last weight time",
+        icon="mdi:clock-end",
+    ),
+    # Signs of illness
+    SensorEntityDescription(
+        key="signs_of_illness_count_last_7_days",
+        name="Signs of illness (7d)",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:alert",
+    ),
+    SensorEntityDescription(
+        key="last_signs_of_illness_time",
+        name="Last signs of illness",
+        icon="mdi:clock-end",
+    ),
+    # Misc boolean from latest glucose entry
+    SensorEntityDescription(
+        key="after_insulin",
+        name="After insulin",
+        icon="mdi:needle",
+    ),
+    SensorEntityDescription(
+        key="after_meal",
+        name="After meal",
+        icon="mdi:food-apple",
+    ),
+    SensorEntityDescription(
+        key="control_test",
+        name="Control test",
+        icon="mdi:beaker-question",
+    ),
 )
 
 
@@ -99,20 +215,95 @@ class AlphaTrakSensor(CoordinatorEntity[AlphaTrakCoordinator], SensorEntity):
             model="AlphaTRAK 3",
         )
 
+    def _get_entry_datetime(self, entry: dict[str, Any]) -> str | None:
+        """Return the entry datetime string found in an activity entry, if any."""
+        if not entry:
+            return None
+        for key, val in entry.items():
+            if key.endswith("EntryDateTime") and isinstance(val, str):
+                return val
+        for key, val in entry.items():
+            if "EntryDate" in key and isinstance(val, str):
+                return val
+        return None
+
     @property
-    def native_value(self) -> float | None:
-        """Return the native value of the sensor."""
+    def native_value(self) -> float | str | int | bool | None:
+        """
+        Return the native value of the sensor based on the description key.
+
+        This function uses mapping tables to minimize branching and ensure a
+        single return at the end for better lint compliance.
+        """
         if not self.coordinator.data:
             return None
 
+        latest_activities = self.coordinator.data.get("latest_activities", {})
+        recent_activities = self.coordinator.data.get("recent_activities", {})
         latest_reading = self.coordinator.data.get("latest_reading")
-        if not latest_reading:
-            return None
 
-        if self.entity_description.key == "glucose_level":
-            return latest_reading.get(DATA_GLUCOSE_LEVEL)
+        key = self.entity_description.key
+        result: float | str | int | bool | None = None
 
-        return None
+        # Direct glucose sensor
+        if key == "glucose_level":
+            result = latest_reading.get(DATA_GLUCOSE_LEVEL) if latest_reading else None
+        else:
+            # Counts mapping
+            count_map = {
+                "feedings_last_7_days": RESPONSE_FEEDING,
+                "insulin_count_last_7_days": RESPONSE_INSULIN,
+                "exercise_count_last_7_days": RESPONSE_EXERCISE,
+                "urination_count_last_7_days": RESPONSE_URINATION,
+                "vomiting_count_last_7_days": RESPONSE_VOMITING,
+                "water_intake_count_last_7_days": RESPONSE_WATER_INTAKE,
+                "signs_of_illness_count_last_7_days": RESPONSE_SIGNS_OF_ILLNESS,
+            }
+
+            # Last-event mapping (time)
+            last_time_map = {
+                "last_feeding_time": RESPONSE_FEEDING,
+                "last_insulin_time": RESPONSE_INSULIN,
+                "last_exercise_time": RESPONSE_EXERCISE,
+                "last_urination_time": RESPONSE_URINATION,
+                "last_vomiting_time": RESPONSE_VOMITING,
+                "last_water_intake_time": RESPONSE_WATER_INTAKE,
+                "last_weight_time": RESPONSE_WEIGHT,
+                "last_signs_of_illness_time": RESPONSE_SIGNS_OF_ILLNESS,
+            }
+
+            # Measurements mapping (activity -> (response_key, field_name))
+            measurement_map = {
+                "last_insulin_dose": (RESPONSE_INSULIN, DATA_INSULIN_DOSE),
+                "last_weight_value": (RESPONSE_WEIGHT, "PetWeight"),
+            }
+
+            # Flags from latest glucose reading
+            flag_map = {
+                "after_insulin": DATA_AFTER_INSULIN,
+                "after_meal": DATA_AFTER_MEAL,
+                "control_test": DATA_CONTROL_TEST,
+            }
+
+            if key in count_map:
+                resp_key = count_map[key]
+                result = len(recent_activities.get(resp_key, []))
+            elif key in last_time_map:
+                resp_key = last_time_map[key]
+                latest = latest_activities.get(resp_key)
+                result = self._get_entry_datetime(latest)
+            elif key in measurement_map:
+                resp_key, field = measurement_map[key]
+                latest = latest_activities.get(resp_key)
+                if latest:
+                    result = latest.get(field)
+            elif key in flag_map:
+                if latest_reading:
+                    result = latest_reading.get(flag_map[key], False)
+                else:
+                    result = None
+
+        return result
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -135,6 +326,8 @@ class AlphaTrakSensor(CoordinatorEntity[AlphaTrakCoordinator], SensorEntity):
         attributes = {
             "unit_type": latest_reading.get(DATA_UNIT_TYPE),
             "device_name": latest_reading.get(DATA_GLUCOSE_DEVICE_NAME),
+            # Pet name (if available from config entry)
+            "pet_name": None,
             "after_meal": latest_reading.get(DATA_AFTER_MEAL, False),
             "after_insulin": latest_reading.get(DATA_AFTER_INSULIN, False),
             "control_test": latest_reading.get(DATA_CONTROL_TEST, False),

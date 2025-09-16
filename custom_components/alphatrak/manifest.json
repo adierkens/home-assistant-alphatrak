@@ -6,7 +6,7 @@
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "quality_scale": "bronze",
-  "requirements": [],
+  "requirements": ["pycryptodome>=3.19.0"],
   "documentation": "https://github.com/adierkens/home-assistant-alphatrak",
   "issue_tracker": "https://github.com/adierkens/home-assistant-alphatrak/issues",
   "version": "0.1.0"
