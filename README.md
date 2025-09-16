@@ -1,46 +1,79 @@
-# Notice
+# AlphaTRAK Integration
 
-The component and platforms in this repository are not meant to be used by a
-user, but as a "blueprint" that custom component developers can build
-upon, to make more awesome stuff.
+AlphaTRAK is a Home Assistant integration that integrates with the AlphaTRAK 3
+blood glucose meter and the Zoetis cloud API to provide readings and activity
+data for pets. This repository contains a custom integration that implements a
+config flow, data coordinator, and a set of sensor entities exposing glucose
+readings, activity counts and metadata.
 
-HAVE FUN! 😎
+Project status
 
-## Why?
+- Quality scale: bronze
+- Integration version: 0.1.0
 
-This is simple, by having custom_components look (README + structure) the same
-it is easier for developers to help each other and for users to start using them.
+Supported Home Assistant
 
-If you are a developer and you want to add things to this "blueprint" that you think more
-developers will have use for, please open a PR to add it :)
+- Tested with Home Assistant Core 2025.2.4 and later
 
-## What?
+Installation
 
-This repository contains multiple files, here is a overview:
+Option A — HACS (recommended)
 
-File | Purpose | Documentation
--- | -- | --
-`.devcontainer.json` | Used for development/testing with Visual Studio Code. | [Documentation](https://code.visualstudio.com/docs/remote/containers)
-`.github/ISSUE_TEMPLATE/*.yml` | Templates for the issue tracker | [Documentation](https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository)
-`custom_components/integration_blueprint/*` | Integration files, this is where everything happens. | [Documentation](https://developers.home-assistant.io/docs/creating_component_index)
-`CONTRIBUTING.md` | Guidelines on how to contribute. | [Documentation](https://help.github.com/en/github/building-a-strong-community/setting-guidelines-for-repository-contributors)
-`LICENSE` | The license file for the project. | [Documentation](https://help.github.com/en/github/creating-cloning-and-archiving-repositories/licensing-a-repository)
-`README.md` | The file you are reading now, should contain info about the integration, installation and configuration instructions. | [Documentation](https://help.github.com/en/github/writing-on-github/basic-writing-and-formatting-syntax)
-`requirements.txt` | Python packages used for development/lint/testing this integration. | [Documentation](https://pip.pypa.io/en/stable/user_guide/#requirements-files)
+1. In HACS, go to Integrations → + (Add) → Explore & Download repositories.
+2. Search for "AlphaTRAK" and install the integration.
+3. Restart Home Assistant.
 
-## How?
+Option B — Manual
 
-1. Create a new repository in GitHub, using this repository as a template by clicking the "Use this template" button in the GitHub UI.
-1. Open your new repository in Visual Studio Code devcontainer (Preferably with the "`Dev Containers: Clone Repository in Named Container Volume...`" option).
-1. Rename all instances of the `integration_blueprint` to `custom_components/<your_integration_domain>` (e.g. `custom_components/awesome_integration`).
-1. Rename all instances of the `Integration Blueprint` to `<Your Integration Name>` (e.g. `Awesome Integration`).
-1. Run the `scripts/develop` to start HA and test out your new integration.
+1. Copy the `custom_components/alphatrak` folder to your Home Assistant
+   `config/custom_components/` folder.
+2. Restart Home Assistant.
 
-## Next steps
+Configuration
 
-These are some next steps you may want to look into:
-- Add tests to your integration, [`pytest-homeassistant-custom-component`](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component) can help you get started.
-- Add brand images (logo/icon) to https://github.com/home-assistant/brands.
-- Create your first release.
-- Share your integration on the [Home Assistant Forum](https://community.home-assistant.io/).
-- Submit your integration to [HACS](https://hacs.xyz/docs/publish/start).
+This integration uses a standard username/password config flow.
+
+1. In Home Assistant, go to Settings → Devices & Services → Add Integration.
+2. Search for "AlphaTRAK" and follow the guided setup to enter your credentials.
+3. Select the pet to create an entry for (the flow supports multiple pets and
+   can create entries for each pet automatically).
+
+Entities
+
+The integration creates the following sensor entities per pet (entity names
+include the pet id):
+
+- Glucose level (`sensor.alpha_trak_glucose_level`) — latest glucose reading
+- Readings last 7 days (`sensor.alpha_trak_readings_last_7_days`) — count
+- Average last 7 days (`sensor.alpha_trak_average_last_7_days`) — computed avg
+- Feedings, insulin, exercise, urination, vomiting, water intake, signs of
+  illness counts (7d) and their last event timestamps
+- Last insulin dose, last weight value, and various boolean flags from the
+  latest glucose reading (after meal, after insulin, control test)
+
+Developer notes
+
+- Domain: `alphatrak`
+- Integration directory: `custom_components/alphatrak`
+- Requirements: `pycryptodome>=3.19.0` (declared in `manifest.json`)
+- This project exposes a config flow (`config_flow.py`) and uses an
+  UpdateCoordinator (`coordinator.py`) to manage polling and caching.
+
+Contributing
+
+Contributions are welcome. Please follow standard Home Assistant
+contribution guidelines:
+
+- Run linting and tests if applicable.
+- Update the `quality_scale.yaml` when changing the integration quality.
+
+Troubleshooting
+
+- If the config flow fails with authentication errors, double-check your
+  username/password and try again.
+- If no pets are found during setup, ensure your account has an active
+  pet registered with the AlphaTRAK service.
+
+License
+
+This project is licensed under the MIT license. See `LICENSE` for details.
